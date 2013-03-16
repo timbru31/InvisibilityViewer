@@ -11,12 +11,12 @@ import java.util.Map.Entry;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import net.minecraft.server.v1_4_R1.MobEffectList;
-import net.minecraft.server.v1_4_R1.WatchableObject;
+import net.minecraft.server.v1_5_R1.MobEffectList;
+import net.minecraft.server.v1_5_R1.WatchableObject;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_4_R1.entity.CraftLivingEntity;
+import org.bukkit.craftbukkit.v1_5_R1.entity.CraftLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
