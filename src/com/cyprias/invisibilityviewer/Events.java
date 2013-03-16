@@ -7,17 +7,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 public class Events implements Listener {
-	private InvisibilityViewer plugin;
+    private InvisibilityViewer plugin;
 
-	public Events(InvisibilityViewer plugin) {
-		this.plugin = plugin;
-	}
+    public Events(InvisibilityViewer plugin) {
+	this.plugin = plugin;
+    }
 
-	
-	@EventHandler(priority = EventPriority.NORMAL)
-	public void onPlayerJoinEvent(PlayerJoinEvent event) {
-		Player player = event.getPlayer();
-		plugin.addPlayerInvisOps(player);
-	}
-
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerJoinEvent(PlayerJoinEvent event) {
+	Player player = event.getPlayer();
+	plugin.addPlayerInvisOps(player);
+    }
 }
