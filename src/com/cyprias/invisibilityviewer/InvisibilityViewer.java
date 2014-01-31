@@ -5,28 +5,23 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import javax.xml.parsers.ParserConfigurationException;
-
-import net.minecraft.server.v1_5_R1.MobEffectList;
-import net.minecraft.server.v1_5_R1.WatchableObject;
+import net.minecraft.server.v1_7_R1.MobEffectList;
+import net.minecraft.server.v1_7_R1.WatchableObject;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_5_R1.entity.CraftLivingEntity;
+import org.bukkit.craftbukkit.v1_7_R1.entity.CraftLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
-import org.xml.sax.SAXException;
 
-import com.comphenix.protocol.Packets;
+import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.events.ConnectionSide;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
@@ -34,7 +29,7 @@ import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.reflect.StructureModifier;
 
 public class InvisibilityViewer extends JavaPlugin {
-    public static String chatPrefix = "§f[§aIV§f] ";
+    public String chatPrefix = "[" + ChatColor.GREEN + "IV" + ChatColor.WHITE+ "] ";
     static InvisibilityViewer instance;
 
     private ProtocolManager protocolManager;
@@ -53,12 +48,12 @@ public class InvisibilityViewer extends JavaPlugin {
     public static HashMap<String, Integer> viewInvis = new HashMap<String, Integer>();
 
     private PacketAdapter pAdapter;
-    
+
     public static HashMap<String, Byte> lastInvisSent = new HashMap<String, Byte>();
-    
+
     public static int maskPlayer = (int) Math.pow(2, 0);
     public static int maskOther = (int) Math.pow(2, 1);
-    
+
     public static HashMap<Entity, Integer> distanceTaskIDs = new HashMap<Entity, Integer>();
 
     public void onLoad() {
@@ -80,10 +75,6 @@ public class InvisibilityViewer extends JavaPlugin {
     public void onEnable() {
 	instance = this;
 	Config.reloadOurConfig(this);
-
-	if (Config.checkNewVersionOnStartup) {
-	    checkVersion();
-	}
 
 	getServer().getPluginManager().registerEvents(this.events, this);
 	getCommand("iv").setExecutor(this.commands);
@@ -109,31 +100,6 @@ public class InvisibilityViewer extends JavaPlugin {
 	getServer().getScheduler().cancelTasks(this);
 
 	getLogger().info(String.format("%s v%s is disabled.", pluginName, this.getDescription().getVersion()));
-    }
-
-    private void checkVersion() {
-	getServer().getScheduler().runTaskAsynchronously(instance, new Runnable() {
-	    public void run() {
-		try {
-		    VersionChecker version = new VersionChecker("http://dev.bukkit.org/server-mods/invisibilityviewer/files.rss");
-		    VersionChecker.versionInfo info = (version.versions.size() > 0) ? version.versions.get(0) : null;
-		    if (info != null) {
-			String curVersion = getDescription().getVersion();
-			if (VersionChecker.compareVersions(curVersion, info.getTitle()) < 0) {
-			    getLogger().warning("We're running v" + curVersion + ", v" + info.getTitle() + " is available");
-			    getLogger().warning(info.getLink());
-			}
-		    }
-		} catch (SAXException e) {
-		    e.printStackTrace();
-		} catch (IOException e) {
-		    e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-		    e.printStackTrace();
-		}
-
-	    }
-	});
     }
 
     private Entity getEntity(List<Entity> ents, int eID) {
@@ -182,12 +148,11 @@ public class InvisibilityViewer extends JavaPlugin {
 
     private void addPacketListener() {
 	protocolManager = ProtocolLibrary.getProtocolManager();
-	pAdapter = new PacketAdapter(this, ConnectionSide.SERVER_SIDE, ListenerPriority.NORMAL, Packets.Server.ENTITY_METADATA) {
+	pAdapter = new PacketAdapter(this, ListenerPriority.NORMAL, PacketType.Play.Server.ENTITY_METADATA) {
 	    public void onPacketSending(PacketEvent event) {
 		PacketContainer packet = event.getPacket();
 
-		switch (event.getPacketID()) {
-		case Packets.Server.ENTITY_METADATA: // Entity Metadata
+		if (event.getPacketType() == PacketType.Play.Server.ENTITY_METADATA) {
 
 		    StructureModifier<Object> mods = packet.getModifier();
 
@@ -257,7 +222,6 @@ public class InvisibilityViewer extends JavaPlugin {
 			    }
 			}
 		    }
-		    break; //case
 		}
 	    }
 	};
@@ -279,7 +243,7 @@ public class InvisibilityViewer extends JavaPlugin {
 	if (Config.debugMessages == true)
 	    getLogger().info("Sending flag "+flag+" on entity " + entID + " to " + player.getName());
 
-	PacketContainer invisPacket = protocolManager.createPacket(Packets.Server.ENTITY_METADATA);
+	PacketContainer invisPacket = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
 
 	ArrayList<WatchableObject> list = new ArrayList<WatchableObject>();
 	list.add(new WatchableObject(0, 0, flag));
@@ -374,9 +338,8 @@ public class InvisibilityViewer extends JavaPlugin {
 	    if (cEnt != null) {
 		Collection<PotionEffect> collection = cEnt.getActivePotionEffects();
 		if (collection != null && !collection.isEmpty()) {
-		    Iterator<PotionEffect> iterator = collection.iterator();
-		    while (iterator.hasNext()) {
-			PotionEffect effect = (PotionEffect) iterator.next();
+		    for (PotionEffect effect : collection) {
+			// FIXME magicNumber, but names are not comparable so far
 			if (effect.getType().getId() == invisEffect.getId()) {
 			    return true;
 			}
@@ -385,7 +348,6 @@ public class InvisibilityViewer extends JavaPlugin {
 	    }
 
 	}
-
 	return false;
     }
 
