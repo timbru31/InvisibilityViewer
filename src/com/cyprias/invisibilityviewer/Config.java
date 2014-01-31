@@ -4,7 +4,7 @@ import org.bukkit.configuration.Configuration;
 
 public class Config {
     private Configuration config;
-    public boolean checkNewVersionOnStartup, togglePlayerByDefault, toggleOtherByDefault, distanceEnabled, debugMessages, debugNoIntercept;
+    public boolean togglePlayerByDefault, toggleOtherByDefault, distanceEnabled, debugMessages, debugNoIntercept;
     public int distanceRadius;
     public long distanceFrequency;
     private InvisibilityViewer plugin;
@@ -23,7 +23,6 @@ public class Config {
     }
 
     private void loadConfigOpts(){
-	checkNewVersionOnStartup = config.getBoolean("checkNewVersionOnStartup");
 	togglePlayerByDefault = config.getBoolean("toggledByDefault.player");
 	toggleOtherByDefault = config.getBoolean("toggledByDefault.other");
 
