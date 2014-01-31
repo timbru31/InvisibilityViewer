@@ -30,63 +30,37 @@ import com.comphenix.protocol.reflect.StructureModifier;
 
 public class InvisibilityViewer extends JavaPlugin {
     public String chatPrefix = "[" + ChatColor.GREEN + "IV" + ChatColor.WHITE+ "] ";
-    static InvisibilityViewer instance;
-
     private ProtocolManager protocolManager;
-    String pluginName;
-
-    public Events events;
-
-    public VersionChecker versionChecker;
-    public Commands commands;
-
-    MobEffectList invisEffect;
-
-    final Byte defaultMask = 0x00;
-    final Byte invisibleMask = 0x20;
-
-    public static HashMap<String, Integer> viewInvis = new HashMap<String, Integer>();
-
+    private LoginListener events;
+    private Commands commands;
+    public Config config;
+    private MobEffectList invisEffect = MobEffectList.INVISIBILITY;
+    private final byte defaultMask = 0x00;
+    private final byte invisibleMask = 0x20;
+    public HashMap<String, Integer> viewInvis = new HashMap<String, Integer>();
+    private HashMap<String, Byte> lastInvisSent = new HashMap<String, Byte>();
+    private HashMap<Entity, Integer> distanceTaskIDs = new HashMap<Entity, Integer>();
     private PacketAdapter pAdapter;
+    public int maskPlayer = (int) Math.pow(2, 0);
+    public int maskOther = (int) Math.pow(2, 1);
 
-    public static HashMap<String, Byte> lastInvisSent = new HashMap<String, Byte>();
-
-    public static int maskPlayer = (int) Math.pow(2, 0);
-    public static int maskOther = (int) Math.pow(2, 1);
-
-    public static HashMap<Entity, Integer> distanceTaskIDs = new HashMap<Entity, Integer>();
-
-    public void onLoad() {
-	pluginName = getDescription().getName();
-	new Config(this);
-	this.events = new Events(this);
-	this.commands = new Commands(this);
-
+    public void onEnable() {
+	events = new LoginListener(this);
+	commands = new Commands(this);
+	config = new Config(this);
 
 	try {
 	    Metrics metrics = new Metrics(this);
 	    metrics.start();
 	} catch (IOException e) {}
 
-	invisEffect = MobEffectList.INVISIBILITY;
-	getLogger().info(String.format("%s v%s is loaded.", pluginName, this.getDescription().getVersion()));
-    }
-
-    public void onEnable() {
-	instance = this;
-	Config.reloadOurConfig(this);
+	config.reloadOurConfig();
 
 	getServer().getPluginManager().registerEvents(this.events, this);
 	getCommand("iv").setExecutor(this.commands);
 
 	addPacketListener();
 	fillViewInvis();
-
-	getLogger().info(String.format("%s v%s is enabled.", pluginName, this.getDescription().getVersion()));
-    }
-
-    public static final JavaPlugin getInstance() {
-	return instance;
     }
 
     public void onDisable() {
@@ -98,8 +72,6 @@ public class InvisibilityViewer extends JavaPlugin {
 	    getServer().getScheduler().cancelTask(e.getValue());
 	}
 	getServer().getScheduler().cancelTasks(this);
-
-	getLogger().info(String.format("%s v%s is disabled.", pluginName, this.getDescription().getVersion()));
     }
 
     private Entity getEntity(List<Entity> ents, int eID) {
@@ -107,7 +79,6 @@ public class InvisibilityViewer extends JavaPlugin {
 	    if (ents.get(i).getEntityId() == eID)
 		return ents.get(i);
 	}
-
 	return null;
     }
 
@@ -127,7 +98,7 @@ public class InvisibilityViewer extends JavaPlugin {
 
     private boolean distanceView(Player player, Entity entity) {
 	double dist = player.getLocation().distance(entity.getLocation());
-	if (dist <= Config.distanceRadius) {
+	if (dist <= config.distanceRadius) {
 	    if (entity instanceof Player) {
 		if (player.hasPermission("invisibilityviewer.distanceView.player")) {
 		    return true;
@@ -151,72 +122,55 @@ public class InvisibilityViewer extends JavaPlugin {
 	pAdapter = new PacketAdapter(this, ListenerPriority.NORMAL, PacketType.Play.Server.ENTITY_METADATA) {
 	    public void onPacketSending(PacketEvent event) {
 		PacketContainer packet = event.getPacket();
-
 		if (event.getPacketType() == PacketType.Play.Server.ENTITY_METADATA) {
-
 		    StructureModifier<Object> mods = packet.getModifier();
-
 		    Entity entity = null;
 		    if (mods.size() > 0) {
 			int eID = (Integer) mods.read(0);
-
 			Player player = event.getPlayer();
 			if (player.getEntityId() == eID) {
 			    return;
 			}
-
 			entity = getEntity(player.getWorld().getEntities(), eID);
-
 			for (int i = 1; i < mods.size(); i++) {//0=entID
 			    if (mods.read(i) instanceof ArrayList) {
 				@SuppressWarnings("unchecked")
 				ArrayList<WatchableObject> list = (ArrayList<WatchableObject>) mods.read(i);
-
 				Byte entFlag;
 				for (int a = 0; a < list.size(); a++) {
-
 				    if (list.get(a) instanceof WatchableObject) {
-
 					entFlag = getPacketFlag((WatchableObject) list.get(a));
 					if (entFlag == null) {
 					    continue;
 					}
-
-					if (Config.debugMessages) {
+					if (config.debugMessages) {
 					    getLogger().info(player.getName() + "'s receving flag " + entFlag + " on " + ((entity instanceof Player)  ? ((Player) entity).getName() : entity.getType() + "("+eID+")"));
 					}
-
-
-					if (Config.debugNoIntercept) {
+					if (config.debugNoIntercept) {
 					    continue;
 					}
-
-
 					if (entFlag == invisibleMask) {
-					    if (Config.distanceEnabled && !distanceTaskIDs.containsKey(entity)) {
+					    if (config.distanceEnabled && !distanceTaskIDs.containsKey(entity)) {
 						//Start a timer to check distance.
 						invisDistanceTask task = new invisDistanceTask(entity);
-						int taskID = plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, task, 0L, (Config.distanceFrequency * 20L));
+						int taskID = plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, task, 0L, (config.distanceFrequency * 20L));
 						task.setId(taskID);
 						distanceTaskIDs.put(entity, taskID);
 					    }
-
-					    if ((Config.distanceEnabled && distanceView(player, entity)) || canView(player, entity)) {
+					    if ((config.distanceEnabled && distanceView(player, entity)) || canView(player, entity)) {
 
 						//Replace the hide byte with the view byte.
 						mods.write(i, list.set(a, new WatchableObject(list.get(a).c(), list.get(a).a(), defaultMask)));
 
-						if (Config.debugMessages) {
+						if (config.debugMessages) {
 						    getLogger().info("Switched " + player.getName() + "'s receving flag " + entFlag + " on " + ((entity instanceof Player)  ? ((Player) entity).getName() : entity.getType() + "("+eID+")") + " to " + defaultMask);
 						}
 					    }
-
 					} else if (entFlag == defaultMask && distanceTaskIDs.containsKey(entity)) {
 					    plugin.getServer().getScheduler().cancelTask(distanceTaskIDs.get(entity));
 					    distanceTaskIDs.remove(entity);
 					}
 				    }
-
 				}
 
 			    }
@@ -240,14 +194,14 @@ public class InvisibilityViewer extends JavaPlugin {
 	//if (player.isOnline())
 	//	return;
 
-	if (Config.debugMessages == true)
+	if (config.debugMessages == true) {
 	    getLogger().info("Sending flag "+flag+" on entity " + entID + " to " + player.getName());
+	}
 
 	PacketContainer invisPacket = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
 
 	ArrayList<WatchableObject> list = new ArrayList<WatchableObject>();
 	list.add(new WatchableObject(0, 0, flag));
-
 
 	invisPacket.getModifier().write(0, entID);
 	invisPacket.getModifier().write(1, list);
@@ -257,11 +211,9 @@ public class InvisibilityViewer extends JavaPlugin {
 	addPacketListener();
     }
 
-    private Byte getPacketFlag(WatchableObject data) {
+    private byte getPacketFlag(WatchableObject data) {
 	return (data.a() == 0) ? (Byte) data.b() : null;
     }
-
-    int lastNum = 0;
 
     public class invisDistanceTask implements Runnable {
 	private Entity entity;
@@ -290,19 +242,16 @@ public class InvisibilityViewer extends JavaPlugin {
 		if (e instanceof Player) {
 		    // dist = e.getLocation().distance(entity.getLocation());
 
-		    if (Config.distanceEnabled && distanceView((Player) e, entity)) {
+		    if (config.distanceEnabled && distanceView((Player) e, entity)) {
 			try {
 			    sendFlagPacket((Player) e, entity.getEntityId(), defaultMask);
 			} catch (InvocationTargetException e1) {
-			    // TODO Auto-generated catch block
 			    e1.printStackTrace();
 			}
-
 		    } else if (!canView((Player) e, entity)) {
 			try {
 			    sendFlagPacket((Player) e, entity.getEntityId(), invisibleMask);
 			} catch (InvocationTargetException e1) {
-			    // TODO Auto-generated catch block
 			    e1.printStackTrace();
 			}
 		    }
@@ -311,8 +260,6 @@ public class InvisibilityViewer extends JavaPlugin {
 	    }
 	}
     }
-
-
 
     public void sendSurroundingInvisPackets(Player player) throws InvocationTargetException {
 	int radius = getServer().getViewDistance() * 16;
@@ -332,7 +279,8 @@ public class InvisibilityViewer extends JavaPlugin {
 	}
     }
 
-    public Boolean isInvisible(Entity entity) {
+    @SuppressWarnings("deprecation")
+    public boolean isInvisible(Entity entity) {
 	if (entity instanceof CraftLivingEntity) {
 	    CraftLivingEntity cEnt = (CraftLivingEntity) entity;
 	    if (cEnt != null) {
@@ -359,14 +307,12 @@ public class InvisibilityViewer extends JavaPlugin {
 
     public void addPlayerInvisOps(Player player) {
 	int flags = 0;
-	if (Config.togglePlayerByDefault) {
+	if (config.togglePlayerByDefault) {
 	    flags = addMask(flags, maskPlayer);
 	}
-
-	if (Config.toggleOtherByDefault) {
+	if (config.toggleOtherByDefault) {
 	    flags = addMask(flags, maskOther);
 	}
-
 	viewInvis.put(player.getName(), flags);
     }
 
@@ -377,15 +323,15 @@ public class InvisibilityViewer extends JavaPlugin {
 	return ChatColor.RED;
     }
 
-    public static boolean hasMask(int flags, int mask) {
+    public boolean hasMask(int flags, int mask) {
 	return ((flags & mask) == mask);
     }
 
-    public static int addMask(int flags, int mask) {
+    public int addMask(int flags, int mask) {
 	return (flags |= mask);
     }
 
-    public static int delMask(int flags, int mask) {
+    public int delMask(int flags, int mask) {
 	return (flags &= ~mask);
     }
 

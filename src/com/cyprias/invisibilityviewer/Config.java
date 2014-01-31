@@ -1,28 +1,28 @@
 package com.cyprias.invisibilityviewer;
 
 import org.bukkit.configuration.Configuration;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class Config {
-    private static Configuration config;
+    private Configuration config;
+    public boolean checkNewVersionOnStartup, togglePlayerByDefault, toggleOtherByDefault, distanceEnabled, debugMessages, debugNoIntercept;
+    public int distanceRadius;
+    public long distanceFrequency;
+    private InvisibilityViewer plugin;
 
-    static boolean checkNewVersionOnStartup, togglePlayerByDefault, toggleOtherByDefault, distanceEnabled, debugMessages, debugNoIntercept;
-    static int distanceRadius;
-    static long distanceFrequency;
-
-    public Config(JavaPlugin plugin) {
-	config = plugin.getConfig().getRoot();
+    public Config(InvisibilityViewer plugin) {
+	this.plugin = plugin;
+	config = plugin.getConfig();
 	config.options().copyDefaults(true);
 	plugin.saveConfig();
     }
 
-    public static void reloadOurConfig(JavaPlugin plugin){
+    public void reloadOurConfig() {
 	plugin.reloadConfig();
-	config = plugin.getConfig().getRoot();
+	config = plugin.getConfig();
 	loadConfigOpts();
     }
 
-    private static void loadConfigOpts(){
+    private void loadConfigOpts(){
 	checkNewVersionOnStartup = config.getBoolean("checkNewVersionOnStartup");
 	togglePlayerByDefault = config.getBoolean("toggledByDefault.player");
 	toggleOtherByDefault = config.getBoolean("toggledByDefault.other");

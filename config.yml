@@ -1,4 +1,3 @@
-checkNewVersionOnStartup: true
 toggledByDefault:
   player: false
   other: false
