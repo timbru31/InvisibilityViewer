@@ -211,7 +211,10 @@ public class InvisibilityViewer extends JavaPlugin {
 	addPacketListener();
     }
 
-    private byte getPacketFlag(WatchableObject data) {
+    private Byte getPacketFlag(WatchableObject data) {
+	if (data == null){
+	    return null;
+	}
 	return (data.a() == 0) ? (Byte) data.b() : null;
     }
 
