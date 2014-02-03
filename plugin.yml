@@ -1,6 +1,6 @@
-name: InvisibilityViewer
+name: InvisibilityViewerReloaded
 main: com.cyprias.invisibilityviewer.InvisibilityViewer
-version: 0.7.0
+version: 0.1
 depend: [ProtocolLib]
 
 commands:
@@ -9,56 +9,15 @@ commands:
     usage: /<command>
 
 permissions:
-  invisibilityviewer.*:
-    description: See all invisible entites. 
+  iv.*:
+    description: Grants access to all other permissions
     default: false
     children:
-      invisibilityviewer.canView.*: true
-      invisibilityviewer.commands.*: true
-      invisibilityviewer.distanceView.*: true
-  invisibilityviewer.canView.*:
-    description: Can view the following types.
+      iv.view: true
+      iv.toggle: true
+  iv.view:
+    description: See all hidden entities
     default: false
-    children:
-      invisibilityviewer.canView.player: true
-      invisibilityviewer.canView.other: true
-  invisibilityviewer.canView.player:
-    description: See invisible players.
-    default: false
-  invisibilityviewer.canView.other:
-    description: See other invisible entities.
-    default: false
-  invisibilityviewer.commands.*:
-    description: Use the following commands
-    default: false
-    children:
-      invisibilityviewer.commands.toggle: true
-      invisibilityviewer.commands.toggle.*: true
-      invisibilityviewer.commands.reload: true
-  invisibilityviewer.commands.toggle.*:
-    description: Use the following commands
-    default: false
-    children:
-      invisibilityviewer.commands.toggle.player: true
-      invisibilityviewer.commands.toggle.other: true
-  invisibilityviewer.commands.toggle.player:
-    description: Toggle seeing invisible players. 
-    default: false
-  invisibilityviewer.commands.toggle.other:
-    description: Toggle seeing invisible others.
-    default: false
-  invisibilityviewer.commands.reload:
-    description: Reload the config.
-    default: false
-  invisibilityviewer.distanceView.*:
-    description: Access the following permissions.
-    default: false
-    children:
-      invisibilityviewer.distanceView.player: true
-      invisibilityviewer.distanceView.other: true
-  invisibilityviewer.distanceView.player:
-    description: See nearby invisible players.
-    default: false
-  invisibilityviewer.distanceView.other:
-    description: See nearby invisible non-players.
+  iv.toggle:
+    description: Toggles status
     default: false

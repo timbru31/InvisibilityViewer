@@ -1,104 +1,37 @@
 package com.cyprias.invisibilityviewer;
 
-import java.lang.reflect.InvocationTargetException;
-
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.bukkit.command.ConsoleCommandSender;
 
 public class Commands implements CommandExecutor {
     private InvisibilityViewer plugin;
+    private String chatPrefix = "[" + ChatColor.GREEN + "InvisibilityViewer" + ChatColor.WHITE+ "] ";
 
     public Commands(InvisibilityViewer plugin) {
 	this.plugin = plugin;
     }
 
     public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args) {
-	if (args.length == 0) {
-	    plugin.sendMessage(sender, plugin.getName() + " v" + plugin.getDescription().getVersion());
-	    if (sender.hasPermission("invisibilityviewer.commands.toggle")) {
-		plugin.sendMessage(sender, ChatColor.GREEN + "/" + commandLabel + " toggle [type] " + ChatColor.GRAY +"- Toggle view setting.", true, false);
-	    }
-	    if (sender.hasPermission("invisibilityviewer.commands.reload")) {
-		plugin.sendMessage(sender, ChatColor.GREEN + "/" + commandLabel + " reload " + ChatColor.GRAY +"- Reload plugin.", true, false);
-	    }
-	    return true;
-	}
-
-
-	if (args[0].equalsIgnoreCase("reload")) {
-	    if (!hasCommandPermission(sender, "invisibilityviewer.commands.reload")) {
-		return true;
-	    }
-	    plugin.config.reloadOurConfig();
-	    return true;
-	} else if (args[0].equalsIgnoreCase("toggle")) {
-	    if (!hasCommandPermission(sender, "invisibilityviewer.commands.toggle")) {
-		return true;
-	    }
-	    if (!(sender instanceof Player)) {
-		sender.sendMessage("You must be a player to execute toggle.");
-		return true;
-	    }
-	    if (args.length < 2) {
-		plugin.sendMessage(sender, "Available types: ");
-		if (sender.hasPermission( "invisibilityviewer.commands.toggle.player")) {
-		    plugin.sendMessage(sender, ChatColor.GREEN + "/" + commandLabel + " toggle " + plugin.colouredHasMask(plugin.viewInvis.get(sender.getName()), plugin.maskPlayer) + "player");
-		}
-		if (sender.hasPermission( "invisibilityviewer.commands.toggle.others")) {
-		    plugin.sendMessage(sender, ChatColor.GREEN + "/" + commandLabel + " toggle " + plugin.colouredHasMask(plugin.viewInvis.get(sender.getName()), plugin.maskOther) + "other");
-		}
-		return true;
-	    }
-
-	    String givenType = args[1];
-
-	    int flags = plugin.viewInvis.get(sender.getName());
-	    if (givenType.equalsIgnoreCase("player")){
-		if (plugin.hasMask(flags, plugin.maskPlayer)){
-		    flags = plugin.delMask(flags, plugin.maskPlayer);
-		    plugin.viewInvis.put(sender.getName(), flags);
-		} else{
-		    flags = plugin.addMask(flags, plugin.maskPlayer);
-		    plugin.viewInvis.put(sender.getName(), flags);
-		}
-		plugin.sendMessage(sender, "View " + givenType + " = " + plugin.hasMask(flags, plugin.maskPlayer));
-		try {
-		    plugin.sendSurroundingInvisPackets((Player) sender);
-		} catch (InvocationTargetException e) {
-		    e.printStackTrace();
-		}
-		return true;
-	    } else if (givenType.equalsIgnoreCase("other")){
-		if (plugin.hasMask(flags, plugin.maskOther)){
-		    flags = plugin.delMask(flags, plugin.maskOther);
-		    plugin.viewInvis.put(sender.getName(), flags);
-		} else{
-		    flags = plugin.addMask(flags, plugin.maskOther);
-		    plugin.viewInvis.put(sender.getName(), flags);
-		}
-		plugin.sendMessage(sender, "View " + givenType + " = " + plugin.hasMask(flags, plugin.maskOther));
-		try {
-		    plugin.sendSurroundingInvisPackets((Player) sender);
-		} catch (InvocationTargetException e) {
-		    e.printStackTrace();
-		}
-		return true;
+	if (sender.hasPermission("iv.toggle")) {
+	if (sender instanceof ConsoleCommandSender) {
+	    sender.sendMessage(ChatColor.DARK_RED + "Sorry, console is not supported!");
+	} else if (args.length == 0) {
+	    sender.sendMessage(chatPrefix);
+	    sender.sendMessage(ChatColor.GREEN + "/iv " + ChatColor.GRAY + " - Toggles your status");
+	} else {
+	    sender.sendMessage(chatPrefix);
+	    if (!plugin.toggleOptOutOfList(sender.getName())) {
+		sender.sendMessage(ChatColor.GREEN + "You will now see other players and mobs!");
 	    } else {
-		plugin.sendMessage(sender, "Invalid toggle type: " + givenType);
-		return true;
+		sender.sendMessage(ChatColor.RED + "You won't see other players and mobs!");
 	    }
 	}
-	return false;
-    }
-
-    private boolean hasCommandPermission(CommandSender player, String permission) {
-	if (player.hasPermission(permission)) {
-	    return true;
+	} else {
+	    sender.sendMessage(ChatColor.DARK_RED + "You do not have the permission for this!");
 	}
-	plugin.sendMessage(player, ChatColor.GRAY + "You do not have permission: " + ChatColor.YELLOW + permission);
-	return false;
+	return true;
     }
 }
