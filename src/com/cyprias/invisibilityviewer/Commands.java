@@ -20,7 +20,7 @@ public class Commands implements CommandExecutor {
 	    sender.sendMessage(ChatColor.DARK_RED + "Sorry, console is not supported!");
 	} else if (args.length == 0) {
 	    sender.sendMessage(chatPrefix);
-	    sender.sendMessage(ChatColor.GREEN + "/iv " + ChatColor.GRAY + " - Toggles your status");
+	    sender.sendMessage(ChatColor.GREEN + "/iv" + ChatColor.GRAY + " - Toggles your status");
 	} else {
 	    sender.sendMessage(chatPrefix);
 	    if (!plugin.toggleOptOutOfList(sender.getName())) {
